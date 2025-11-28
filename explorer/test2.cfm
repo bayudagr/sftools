@@ -1,0 +1,19 @@
+<cfset lstWorklocation = 'SIGHO|SIG000,SIGJKT|SIG000,SIGSBY|SIG000,SIGBKS|SIG025,SIGBLG|SIG025,SIGBL1|SIG001,SIGBL2|SIG001,SIGPUG|SIG003,SIGMDN|SIG004,SIGLSM|SIG005,SIGPKU|SIG006,SIGSDA|SIG007,SIGBDG|SIG008,SIGBIT|SIG009,SIGMND|SIG010,SIGKDI|SIG011,SIGMKS|SIG012,SIGPAL|SIG013,SIGGTO|SIG014,SIGCKR|SIG015,SIGPUG(FS)|SIG016,SIGTMR|SIG017,SIGSMG|SIG018,SIGMDN(FS)|SIG019,SIGSNG(FS)|SIG020,SIGSRW|SIG021,SIGPLP|SIG022,SIGPRE|SIG023,SIGMMJ|SIG024,SIGPLT|SIG026,SIGCLM|SIG027,SIGKDL|SIG028,SIGLBL|SIG029,SIGTTE|SIG030,SIGBTR|SIG031,SIGPMS|SIG032,SIGKBJ|SIG033,SIGBMS|SIG034,SIGCKD|SIG035,SIGMRW|SIG036,SIGBLT|SIG037,SIGABN|SIG038'>
+
+<cfloop list="#lstWorklocation#" item="idx">
+	<cfset oldSite = listFirst(idx,"|")>
+	<cfset newSite = listLast(idx,"|")>
+
+	<cfquery name="qGetRequest" datasource="#request.sdsn#">
+		SELECT * FROM ttadondutyrequest
+		WHERE pembebanan_site = '#oldSite#'
+	</cfquery>
+
+	<cfdump var="#qGetRequest#">
+
+	<cfquery name="qUpdate" datasource="#request.sdsn#">
+		UPDATE ttadondutyrequest SET
+		pembebanan_site = '#newSite#'
+		WHERE pembebanan_site = '#oldSite#'
+	</cfquery>
+</cfloop>
