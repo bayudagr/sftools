@@ -3,7 +3,7 @@
 		<cfargument name="sqlText" type="string" required="yes">
 
 		<cfset pattern = "(?i)(?=from\s|from)(.*?)(?=\swhere|where|$)">
- 	<cfset matches = REMatch(pattern, sqlText)>
+ 		<cfset matches = REMatch(pattern, sqlText)>
 
 		<cfif arrayLen(matches) gt 0>
 			<cfloop from="1" to="#arrayLen(matches)#" index="idx">

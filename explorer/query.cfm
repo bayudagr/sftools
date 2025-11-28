@@ -7,15 +7,27 @@
 	<cf_sfabort>
 </cfif>
 
-<cfset objComp = createComponent("component","SFCL_Explorer")>
-<cfset strckVar = objComp.initVar()>
-
 <cfoutput>
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+	<!---script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+	
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.0/codemirror.min.css" />
+
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+
+    
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.0/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/search/searchcursor.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/search/search.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/dialog/dialog.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/dialog/dialog.min.css" />
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/keymap/sublime.min.js"></script--->
 
 	<style>
 		::-webkit-scrollbar {
 			width: 4px;
+			height: 4px;
 			background: ##f1f1f1;
 		}
 
@@ -136,6 +148,13 @@
  			animation: spin 2s linear infinite;
 		}
 
+		##sqlfiddle-wrapper {
+			display: flex;
+			flex-direction: column;
+			height: 100%;
+			overflow: hidden;
+		}
+
 		/* Safari */
 		@-webkit-keyframes spin {
  			0% { -webkit-transform: rotate(0deg); }
@@ -148,199 +167,227 @@
 		}
 	</style>
 	
-	<!---div id="main-wrapper" style="width:100%;height:100vh"--->
-		<form name="frmQuery">
-			<div id="input-container" width="100%">
-				<textarea rows="15" id="sql_query" name="sql_query"></textarea>
-				
-				<div style="display:flex;flex-direction:row;column-gap:10px;">
-					<button type="button" id="exec-query">Submit</button>
-					<button type="button" id="copy-result" onclick="selectElementContents( document.getElementById('query-table') );" disabled>Copy</button>
-					<div class="checkbox-wrapper-29 chk-show-error">
- 						<label class="checkbox">
- 							<input type="checkbox" class="checkbox__input" name="chk-show"/> 
- 							<span class="checkbox__label"></span>
- 							Show full error
- 						</label>
+	<div id="sqlfiddle-wrapper">
+		<div>
+			<form name="frmQuery">
+				<div id="input-container" width="100%">
+					<textarea rows="15" id="sql_query" name="sql_query" style="display:none"></textarea>
+                    <div style="border: 1px solid ##ddd">
+                        <textarea id="sql-mirror-editor" name="sql-mirror-editor" style="height:100%;width:100%"></textarea>
+                    </div>
+					
+					<div style="display:flex;flex-direction:row;column-gap:10px;">
+						<button type="button" id="exec-query">Submit</button>
+						<button type="button" id="copy-result" onclick="selectElementContents( document.getElementById('query-table') );" disabled>Copy</button>
+						<div class="checkbox-wrapper-29 chk-show-error">
+							 <label class="checkbox">
+								 <input type="checkbox" class="checkbox__input" name="chk-show"/> 
+								 <span class="checkbox__label"></span>
+								 Show full error
+							 </label>
+						</div>
 					</div>
+	
 				</div>
+			</form>
+		</div>
 
+		<div style="overflow: hidden;">
+			<div id="context-menu">
+				<div class="item">View</div>
+				<div class="item">Refresh</div>
+				 <div class="item">Copy</div>
+				 <div class="item">Customize</div>
+				 <div class="item">Save As</div>
 			</div>
-		</form>
-
-		<div id="context-menu">
-			<div class="item">View</div>
-			<div class="item">Refresh</div>
- 			<div class="item">Copy</div>
- 			<div class="item">Customize</div>
- 			<div class="item">Save As</div>
-		</div>
-		
-		<div id="loader-container" style="width:100%;display:none" align="center">
-			<div class="loader"></div>
-		</div>
-		<div id="sql-result" style="width:100%;height:400px;overflow:auto;display:none"></div>
-
-		<script>
-			$('##exec-query').click(function(){
-				$('##loader-container').css("display","block");
-				$('##sql-result').css("display","none");
-				const sqlText = $('##sql_query').val();
-				$('.chk-show-error').hide();
-				$('##sql-result').load('?sfid=sys.sec.cron.client.#strckVar.ist#.explorer.queryResult',{sqlText:sqlText});
-			});
 			
-			function selectElementContents(el) {
- 				var body = document.body, range, sel;
-				$('.txt_data').hide();
-				$('.span_data').show();
- 				if (document.createRange && window.getSelection) {
- 					range = document.createRange();
- 					sel = window.getSelection();
- 					sel.removeAllRanges();
- 					try {
- 						range.selectNodeContents(el);
- 						sel.addRange(range);
- 					} catch (e) {
- 						range.selectNode(el);
- 						sel.addRange(range);
- 					}
+			<div id="loader-container" style="width:100%;display:none" align="center">
+				<div class="loader"></div>
+			</div>
+			<div id="sql-result" style="width:100%;overflow:hidden;display:none"></div>
+		</div>
+	</div>
 
- 					document.execCommand("copy");
-					console.log('1');
- 				} else if (body.createTextRange) {
- 					range = body.createTextRange();
- 					range.moveToElementText(el);
- 					range.select();
- 					range.execCommand("Copy");
-					console.log('2');
+	<script>
+		const sqleditor = CodeMirror.fromTextArea(document.getElementById("sql-mirror-editor"), {
+			mode: "text/x-mysql",        // mode / syntax
+			lineNumbers: true,         // show line numbers
+			tabSize: 4,
+			indentWithTabs: false,
+			smartIndent: false,
+			keyMap: "sublime",  // Enables Ctrl-F, Ctrl-H, etc.
+			extraKeys: {
+				"Ctrl-F": "findPersistent",
+				"Ctrl-H": "replace",
+				"Shift-Ctrl-F": "find",
+				"Shift-Ctrl-R": "replaceAll"
+			}
+		});
+
+		// Example: get code from the editor
+		function getSql() {
+			const sql = sqleditor.getValue();
+			return sql;
+		}
+
+		$('##exec-query').click(function(){
+			$('##loader-container').css("display","block");
+			$('##sql-result').css("display","none");
+			const sqlText = getSql()
+			$('.chk-show-error').hide();
+			$('##sql-result').load('?sfid=sys.sec.cron.client.samator.explorer.queryResult',{sqlText:sqlText});
+		});
+		
+		function selectElementContents(el) {
+			var body = document.body, range, sel;
+			$('.txt_data').hide();
+			$('.span_data').show();
+			if (document.createRange && window.getSelection) {
+				range = document.createRange();
+				sel = window.getSelection();
+				sel.removeAllRanges();
+				try {
+					range.selectNodeContents(el);
+					sel.addRange(range);
+				} catch (e) {
+					range.selectNode(el);
+					sel.addRange(range);
 				}
-				$('.txt_data').show();
-				$('.span_data').hide();
-				alert("Table copied to clipboard. You can now paste it into Excel or another application");
+
+				document.execCommand("copy");
+				console.log('1');
+			} else if (body.createTextRange) {
+				range = body.createTextRange();
+				range.moveToElementText(el);
+				range.select();
+				range.execCommand("Copy");
+				console.log('2');
 			}
+			$('.txt_data').show();
+			$('.span_data').hide();
+			alert("Table copied to clipboard. You can now paste it into Excel or another application");
+		}
 
-			function contextCopy(event) {
- 				var target = event.target;
- 				var copyText = target.nextElementSibling;
+		function contextCopy(event) {
+			var target = event.target;
+			var copyText = target.nextElementSibling;
 
- 				navigator.clipboard.writeText(copyText.value);
+			navigator.clipboard.writeText(copyText.value);
 
- 				alert("Text copied");
+			alert("Text copied");
+		}
+
+		$('##sql_query').keydown(function(e){
+			if (e.key == 'Tab') {
+				e.preventDefault();
+				var start = this.selectionStart;
+				var end = this.selectionEnd;
+
+				// set textarea value to: text before caret + tab + text after caret
+				this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+
+				// put caret at right position again
+				this.selectionStart =
+				this.selectionEnd = start + 1;
 			}
+		});
 
-			$('##sql_query').keydown(function(e){
-				if (e.key == 'Tab') {
- 					e.preventDefault();
- 					var start = this.selectionStart;
- 					var end = this.selectionEnd;
+		//Events for desktop and touch
+					//let events = ["contextmenu"];
+					var events = [];
 
- 					// set textarea value to: text before caret + tab + text after caret
- 					this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+					//initial declaration
+					var timeout;
 
- 					// put caret at right position again
- 					this.selectionStart =
- 					this.selectionEnd = start + 1;
- 				}
-			});
+					//for double tap
+					var lastTap = 0;
 
-			//Events for desktop and touch
-						//let events = ["contextmenu"];
-						let events = [];
+					//refer menu div
+					var contextMenu = document.getElementById("context-menu");
 
- 						//initial declaration
- 						var timeout;
+					//same function for both events
+					//event type is a data structure that defines the data contained in an event
+					events.forEach((eventType) => {
+						console.log('test');
+						document.addEventListener(
+							eventType,
+							(e) => {
+								console.log(e);
+								//preventDefault() method stops the default action of a selected element from happening by a user
+								e.preventDefault();
+								//x and y position of mouse or touch
+								//mouseX represents the x-coordinate of the mouse
+								var mouseX = e.clientX || e.touches[0].clientX;
+								//mouseY represents the y-coordinate of the mouse.
+								var mouseY = e.clientY || e.touches[0].clientY;
+								//height and width of menu
+								//getBoundingClientRect() method returns the size of an element and its position relative to the viewport
+								var menuHeight = contextMenu.getBoundingClientRect().height;
+								var menuWidth = contextMenu.getBoundingClientRect().width;
+								//width and height of screen
+								//innerWidth returns the interior width of the window in pixels
+								var width = window.innerWidth;
+								var height = window.innerHeight;
+								//If user clicks/touches near right corner
+								if (width - mouseX <= 200) {
+									contextMenu.style.borderRadius = "5px 0 5px 5px";
+									contextMenu.style.left = width - menuWidth + "px";
+									contextMenu.style.top = mouseY + "px";
+									//right bottom
+									if (height - mouseY <= 200) {
+										contextMenu.style.top = mouseY - menuHeight + "px";
+										contextMenu.style.borderRadius = "5px 5px 0 5px";
+									}
+								}
+								//left
+								else {
+									contextMenu.style.borderRadius = "0 5px 5px 5px";
+									contextMenu.style.left = mouseX + "px";
+									contextMenu.style.top = mouseY + "px";
+									//left bottom
+									if (height - mouseY <= 200) {
+										contextMenu.style.top = mouseY - menuHeight + "px";
+										contextMenu.style.borderRadius = "5px 5px 5px 0";
+									}
+								}
+								//display the menu
+								contextMenu.style.visibility = "visible";
+							},
+							{ passive: false }
+						);
+					});
 
- 						//for double tap
- 						var lastTap = 0;
+					//for double tap(works on touch devices)
+					document.addEventListener("touchendd", function (e) {
+						//current time
+						var currentTime = new Date().getTime();
+						//gap between two gaps
+						var tapLength = currentTime - lastTap;
+						//clear previous timeouts(if any)
+						//The clearTimeout() method clears a timer set with the setTimeout() method.
+						clearTimeout(timeout);
+						//if user taps twice in 500ms
+						if (tapLength < 500 && tapLength > 0) {
+							//hide menu
+							contextMenu.style.visibility = "hidden";
+							e.preventDefault();
+						} else {
+							//timeout if user doesn't tap after 500ms
+							timeout = setTimeout(function () {
+								clearTimeout(timeout);
+							}, 500);
+						}
+						//lastTap set to current time
+						lastTap = currentTime;
+					});
 
- 						//refer menu div
- 						let contextMenu = document.getElementById("context-menu");
-
-						//same function for both events
-						//event type is a data structure that defines the data contained in an event
- 						events.forEach((eventType) => {
-							console.log('test');
- 							document.addEventListener(
-								eventType,
- 								(e) => {
-									console.log(e);
-									//preventDefault() method stops the default action of a selected element from happening by a user
- 									e.preventDefault();
- 									//x and y position of mouse or touch
-									//mouseX represents the x-coordinate of the mouse
- 									let mouseX = e.clientX || e.touches[0].clientX;
-									//mouseY represents the y-coordinate of the mouse.
- 									let mouseY = e.clientY || e.touches[0].clientY;
- 									//height and width of menu
-									//getBoundingClientRect() method returns the size of an element and its position relative to the viewport
- 									let menuHeight = contextMenu.getBoundingClientRect().height;
- 									let menuWidth = contextMenu.getBoundingClientRect().width;
- 									//width and height of screen
-									//innerWidth returns the interior width of the window in pixels
- 									let width = window.innerWidth;
- 									let height = window.innerHeight;
- 									//If user clicks/touches near right corner
- 									if (width - mouseX <= 200) {
- 										contextMenu.style.borderRadius = "5px 0 5px 5px";
- 										contextMenu.style.left = width - menuWidth + "px";
- 										contextMenu.style.top = mouseY + "px";
- 										//right bottom
- 										if (height - mouseY <= 200) {
- 											contextMenu.style.top = mouseY - menuHeight + "px";
- 											contextMenu.style.borderRadius = "5px 5px 0 5px";
- 										}
- 									}
- 									//left
- 									else {
- 										contextMenu.style.borderRadius = "0 5px 5px 5px";
- 										contextMenu.style.left = mouseX + "px";
- 										contextMenu.style.top = mouseY + "px";
- 										//left bottom
- 										if (height - mouseY <= 200) {
- 											contextMenu.style.top = mouseY - menuHeight + "px";
- 											contextMenu.style.borderRadius = "5px 5px 5px 0";
- 										}
- 									}
- 									//display the menu
- 									contextMenu.style.visibility = "visible";
- 								},
- 								{ passive: false }
- 							);
- 						});
-
- 						//for double tap(works on touch devices)
- 						document.addEventListener("touchendd", function (e) {
- 							//current time
- 							var currentTime = new Date().getTime();
- 							//gap between two gaps
- 							var tapLength = currentTime - lastTap;
- 							//clear previous timeouts(if any)
-							//The clearTimeout() method clears a timer set with the setTimeout() method.
- 							clearTimeout(timeout);
- 							//if user taps twice in 500ms
- 							if (tapLength < 500 && tapLength > 0) {
- 								//hide menu
- 								contextMenu.style.visibility = "hidden";
- 								e.preventDefault();
- 							} else {
- 								//timeout if user doesn't tap after 500ms
- 								timeout = setTimeout(function () {
- 									clearTimeout(timeout);
- 								}, 500);
- 							}
- 							//lastTap set to current time
- 							lastTap = currentTime;
- 						});
-
- 						//click outside the menu to close it (for click devices)
- 						document.addEventListener("click", function (e) {
- 							if (!contextMenu.contains(e.target)) {
- 								contextMenu.style.visibility = "hidden";
- 							}
- 						});
-		</script>
-	<!---/div--->
+					//click outside the menu to close it (for click devices)
+					document.addEventListener("click", function (e) {
+						if (!contextMenu.contains(e.target)) {
+							contextMenu.style.visibility = "hidden";
+						}
+					});
+	</script>
 </cfoutput>
 
 

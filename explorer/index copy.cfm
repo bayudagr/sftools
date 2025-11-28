@@ -5,15 +5,9 @@
 		</script>
 	</cfoutput>
 	<cf_sfabort>
-<cfelseif isDefined("dirPath") AND (dirPath eq "/" OR dirPath eq "" OR dirPath eq "\")>
-    <cfoutput>
-        <h1>Still Nope!!</h1>
-    </cfoutput>
-    <cf_sfabort>
 </cfif>
 <cfparam name="dirPath" default="#expandPath(APPLICATION.PATH.URL)#/sys/sec/cron/client/samator">
 <cfparam name="viewMode" default="list">
-<cfparam name="sort" default="name ASC">
 
 <cfset backUrl = listDeleteAt(dirPath, listLen(dirPath,"/"), "/")>
 
@@ -24,26 +18,6 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" type="text/css" rel="stylesheet">
     <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
     <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
-
-    <!-- Include CodeMirror CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.0/codemirror.min.css" />
-    <!-- Optionally include a theme -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.0/theme/dracula.min.css" />
-
-    <!-- Include CodeMirror JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.0/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/htmlmixed/htmlmixed.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/css/css.js"></script>
-
-    <!-- Search Add-ons -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/search/searchcursor.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/search/search.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/dialog/dialog.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/dialog/dialog.min.css" />
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/keymap/sublime.min.js"></script>
 
     <style>
         @import url(https://fonts.googleapis.com/css?family=Open+Sans);
@@ -192,6 +166,11 @@
             margin: 0 auto 10px;
         }
 
+        .pre {
+            height: 100%;
+            overflow: auto;
+        }
+
         .close-btn {
             text-decoration: none;
             margin-right: 20px;
@@ -231,6 +210,35 @@
 
         ##editor-container {
             display: none;
+        }
+
+        pre code,
+        pre .line-number {
+        /* Ukuran line-height antara teks di dalam tag <code> dan <span class="line-number"> harus sama! */
+            font:normal normal 12px/14px "Courier New",Courier,Monospace;
+            color:black;
+            display:block;
+        }
+
+        pre .line-number {
+            float:left;
+            margin:0 1em -1em;
+            border-right:1px solid;
+            text-align:right;
+            position:sticky;
+            left:0;
+            clear:both;
+            background: ##fafafa;
+        }
+
+        pre .line-number span {
+            display:block;
+            padding:0 .5em 0 1em;
+        }
+
+        pre .cl {
+            display:block;
+            clear:both;
         }
 
         [contenteditable] {
@@ -564,7 +572,6 @@
         ##t_content thead td {
             font-weight: 700;
             border-bottom: 1px solid var(--secondary);
-            cursor: pointer;
         }
         .content-container {
             display: flex;
@@ -600,7 +607,7 @@
         }
 
         .grid-items {
-            font-size: 80px;
+            font-size: 100px;
             width: 120px;
             height: 150px;
             color: ##00B4CC;
@@ -611,14 +618,10 @@
             cursor: pointer;
         }
 
-        .grid-items .inp_rename {
-            font-size: initial;
-        }
-
         .grid-items:hover {
             .grid-items-icon {
                 color: ##0090A3;
-                font-size: 90px;
+                font-size: 110px;
             }
         }
 
@@ -636,30 +639,6 @@
             bottom: 0;
             align-items: center;
             justify-content: center;
-        }
-
-        .listing-header {
-            display: flex;
-            width: 100%;
-            justify-content: space-between;
-        }
-
-        ##t_content thead td:hover {
-            background: ##f2f2f2;
-        }
-
-        ##t_content thead tr:has(td:nth-child(-n+3):hover) td:nth-child(-n+3) {
-            background: ##f2f2f2;
-        }
-
-        .CodeMirror {
-            height: 100%;
-            border-radius: 10px;
-        }
-
-        .CodeMirror-gutters {
-            background: ##f5f5f5;
-            border-right: 1px solid ##ddd;
         }
     </style>
     
@@ -712,167 +691,8 @@
                 <div class="sidepanel">
                     <cfinclude template="./explorer_sidepanel.cfm">
                 </div>
-                <div class="content">
-                    <input type="hidden" name="sort" id="sort" value="#sort#">
-                    <cfdirectory directory="#dirPath#" name="qDirPath" action="list">
-                    <cfset arrExtType = arrayNew(1)>
-                    <cfloop query="qDirPath">
-                        <cfif qDirPath.type neq 'Dir'>
-                            <cfset arrayAppend(arrExtType, listLen(qDirPath.name, ".") gte 2 ? listLast(qDirPath.name, ".") : "undefined")>
-                        <cfelse>
-                            <cfset arrayAppend(arrExtType, "")>
-                        </cfif>
-                    </cfloop>
-                    <cfset queryAddColumn(qDirPath, "file_ext", "varchar", arrExtType)>
-                    <cfquery name="qDirPath" dbtype="query">
-                        SELECT * FROM qDirPath
-                        ORDER BY #sort#
-                    </cfquery>
-                    <cfset codeExt = "html,cfc,cfm,js,jsx,ts,css,scss,less,sass,xml">
-                    <cfif viewMode eq 'list'>
-                        <div id="view-list">
-                            <table width="100%" id="t_content">
-                                <thead>
-                                    <tr>
-                                        <td></td>
-                                        <td></td>
-                                        <td onclick="changeSorting('name')">
-                                            <div class="listing-header">
-                                                <span>Name</span>
-                                                <span>
-                                                    <cfif listFirst(sort, " ") eq "name">
-                                                        <i class="fa fa-sort-#lcase(listLast(sort, ' '))#"></i>
-                                                    <cfelse>
-                                                        <i class="fa fa-sort"></i>
-                                                    </cfif>
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td onclick="changeSorting('dateLastModified')">
-                                            <div class="listing-header">
-                                                <span>Modified Date</span>
-                                                <span>
-                                                    <cfif listFirst(sort, " ") eq "dateLastModified">
-                                                        <i class="fa fa-sort-#lcase(listLast(sort, ' '))#"></i>
-                                                    <cfelse>
-                                                        <i class="fa fa-sort"></i>
-                                                    </cfif>
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td onclick="changeSorting('file_ext')">
-                                            <div class="listing-header">
-                                                <span>Type</span>
-                                                <span>
-                                                    <cfif listFirst(sort, " ") eq "file_ext">
-                                                        <i class="fa fa-sort-#lcase(listLast(sort, ' '))#"></i>
-                                                    <cfelse>
-                                                        <i class="fa fa-sort"></i>
-                                                    </cfif>
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td onclick="changeSorting('size')">
-                                            <div class="listing-header">
-                                                <span>Size</span>
-                                                <span>
-                                                    <cfif listFirst(sort, " ") eq "size">
-                                                        <i class="fa fa-sort-#lcase(listLast(sort, ' '))#"></i>
-                                                    <cfelse>
-                                                        <i class="fa fa-sort"></i>
-                                                    </cfif>
-                                                </span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td colspan="3">../ <a href="javascript:void(0)" onclick="changeDirectory('#backUrl#')">back</a></td>
-                                    </tr>
-                                    <cfloop query="qDirPath">
-                                        <tr>
-                                            <td class="fit-content">
-                                                <cfif qDirPath.type eq 'File'>
-                                                    <!---input type="checkbox" name="inp_check_#qDirPath.currentrow#"--->
-                                                </cfif>
-                                            </td>
-                                            <td class="fit-content">
-                                                <cfif qDirPath.type eq 'Dir'>
-                                                    <i class="fa fa-folder-o"></i>
-                                                <cfelse>
-                                                    <cfif listFindNoCase(codeExt, listLast(qDirPath.name, "."))>
-                                                        <i class="fa fa-file-code-o"></i>
-                                                    <cfelseif listFindNoCase("xls,xlsx,csv", listLast(qDirPath.name, "."))>
-                                                        <i class="fa fa-file-excel-o"></i>
-                                                    <cfelseif listFindNoCase("txt", listLast(qDirPath.name, "."))>
-                                                        <i class="fa fa-file-text-o"></i>
-                                                    <cfelse>
-                                                        <i class="fa fa-file-o"></i>
-                                                    </cfif>
-                                                </cfif>
-                                            </td>
-                                            <td>
-                                                <cfif qDirPath.type eq 'Dir'>
-                                                    <a href="javascript:void(0)" class="dir-list-item" data-file-path="#qDirPath.directory#" data-file-name="#qDirPath.name#" onclick="changeDirectory('#qDirPath.directory#/#qDirPath.name#')">#qDirPath.name#</a>
-                                                <cfelse>
-                                                    <span id="lbl_filename_#qDirPath.currentrow#" class="file-list-item" data-file-row="#qDirPath.currentrow#" data-file-name="#qDirPath.name#" data-file-path="#qDirPath.directory#">#qDirPath.name#</span>
-                                                    <input type="text" class="inp_rename" id="inp_rename_#qDirPath.currentrow#" value="#qDirPath.name#" style="display:none;" onblur="renameFile('#qDirPath.name#','#qDirPath.directory#',#qDirPath.currentrow#)">
-                                                </cfif>
-                                            </td>
-                                            <cfif qDirPath.type eq 'File'>
-                                                <td>#dateTimeFormat(qDirPath.dateLastModified,"yyyy-mm-dd hh:nn:ss")#</td>
-                                                <td>#listLast(qDirPath.name,".")#</td>
-                                                <!---td>#fileGetMimeType("#qDirPath.directory#/#qDirPath.name#")#</td--->
-                                                <td>#qDirPath.size# Bytes</td>
-                                            <cfelse>
-                                                <td>#dateTimeFormat(qDirPath.dateLastModified,"yyyy-mm-dd hh:nn:ss")#</td>
-                                                <td>File Folder</td>
-                                                <td></td>
-                                            </cfif>
-                                        </tr>
-                                    </cfloop>
-                                </tbody>
-                            </table>
-                        </div>
-                    <cfelseif viewMode eq 'grid'>
-                        <div id="view-grid">
-                            <cfif qDirPath.recordcount gt 0>
-                                <cfloop query="qDirPath">
-                                    <cfif qDirPath.type eq 'Dir'>
-                                        <div class="grid-items dir-list-item" data-file-path="#qDirPath.directory#" data-file-name="#qDirPath.name#" onclick="changeDirectory('#qDirPath.directory#/#qDirPath.name#')">
-                                    <cfelse>
-                                        <div class="grid-items file-list-item" data-file-row="#qDirPath.currentrow#" data-file-name="#qDirPath.name#" data-file-path="#qDirPath.directory#">
-                                    </cfif>
-                                        <div class="grid-items-icon">
-                                            <cfif qDirPath.type eq 'Dir'>
-                                                <i class="fa fa-folder-o"></i>
-                                            <cfelse>
-                                                <cfif listFindNoCase(codeExt, listLast(qDirPath.name, "."))>
-                                                    <i class="fa fa-file-code-o"></i>
-                                                <cfelseif listFindNoCase("xls,xlsx,csv", listLast(qDirPath.name, "."))>
-                                                    <i class="fa fa-file-excel-o"></i>
-                                                <cfelseif listFindNoCase("txt", listLast(qDirPath.name, "."))>
-                                                    <i class="fa fa-file-text-o"></i>
-                                                <cfelse>
-                                                    <i class="fa fa-file-o"></i>
-                                                </cfif>
-                                            </cfif>
-                                        </div>
-                                        <div>
-                                            <!---span class="lbl-grid-item-name">#len(qDirpath.name) gt 15 ? htmlEditFormat(left(qDirPath.name, 12)) & '...' : htmlEditFormat(qDirPath.name)#</span--->
-                                            <span id="lbl_filename_#qDirPath.currentrow#" class="lbl-grid-item-name">#len(qDirpath.name) gt 15 ? htmlEditFormat(left(qDirPath.name, 12)) & '...' : htmlEditFormat(qDirPath.name)#</span>
-                                            <input type="text" class="inp_rename" id="inp_rename_#qDirPath.currentrow#" value="#qDirPath.name#" style="display:none;" onblur="renameFile('#qDirPath.name#','#qDirPath.directory#',#qDirPath.currentrow#)">
-                                        </div>
-                                    </div>
-                                </cfloop>
-                            <cfelse>
-                                <div class="empty-wrapper">
-                                    <span>Empty</span>
-                                </div>
-                            </cfif>
-                        </div>
-                    </cfif>
+                <div class="content" id="explorer-listing">
+                    
                 </div>
             </div>
         </form>
@@ -898,12 +718,9 @@
                 <pre class="pre"><code id="code-editor" class="editor-pre" contenteditable onkeyup="handleNewLine();"></code></pre>
                 --->
                 <!---<textarea id="code-editor" name="code-editor"></textarea--->
-                <div id="container" class="container" style="display:none">
+                <div id="container" class="container">
                     <div id="line-numbers" class="container__lines"></div>
                     <textarea id="textarea" class="container__textarea"></textarea>
-                </div>
-                <div style="height:100%; width:100%; padding:5px 20px;">
-                    <textarea id="code-mirror-editor" name="code-mirror-editor" style="height:100%;width:100%"></textarea>
                 </div>
             </div>
         </div>
@@ -988,46 +805,119 @@
     </div>
     
     <script>
+        loadListing('#dirPath#', '#viewMode#', '#backUrl#');
         var activeContextMenuItem = undefined;
 
-        // Initialize CodeMirror on the textarea
-        const editor = CodeMirror.fromTextArea(document.getElementById("code-mirror-editor"), {
-            mode: "htmlmixed",        // mode / syntax
-            lineNumbers: true,         // show line numbers
-            theme: "dracula",           // theme
-            tabSize: 4,
-            indentWithTabs: false,
-            smartIndent: false,
-            keyMap: "sublime",  // Enables Ctrl-F, Ctrl-H, etc.
-            extraKeys: {
-                "Ctrl-F": "findPersistent",
-                "Ctrl-H": "replace",
-                "Shift-Ctrl-F": "find",
-                "Shift-Ctrl-R": "replaceAll"
+        // document.addEventListener('DOMContentLoaded', () => {
+        const textarea = document.getElementById('textarea');
+        const lineNumbersEle = document.getElementById('line-numbers');
+
+        const textareaStyles = window.getComputedStyle(textarea);
+        [
+            'fontFamily',
+            'fontSize',
+            'fontWeight',
+            'letterSpacing',
+            'lineHeight',
+            'padding',
+        ].forEach((property) => {
+            lineNumbersEle.style[property] = textareaStyles[property];
+        });
+
+        const parseValue = (v) => v.endsWith('px') ? parseInt(v.slice(0, -2), 10) : 0;
+
+        const font = `${textareaStyles.fontSize} ${textareaStyles.fontFamily}`;
+        const paddingLeft = parseValue(textareaStyles.paddingLeft);
+        const paddingRight = parseValue(textareaStyles.paddingRight);
+
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        context.font = font;
+
+        const calculateNumLines = (str) => {
+            const textareaWidth = textarea.getBoundingClientRect().width - paddingLeft - paddingRight;
+            const words = str.split(' ');
+            let lineCount = 0;
+            let currentLine = '';
+            for (let i = 0; i < words.length; i++) {
+                const wordWidth = context.measureText(words[i] + ' ').width;
+                const lineWidth = context.measureText(currentLine).width;
+
+                if (lineWidth + wordWidth > textareaWidth) {
+                    lineCount++;
+                    currentLine = words[i] + ' ';
+                } else {
+                    currentLine += words[i] + ' ';
+                }
+            }
+
+            if (currentLine.trim() !== '') {
+                lineCount++;
+            }
+
+            return lineCount;
+        };
+
+        const calculateLineNumbers = () => {
+            const lines = textarea.value.split('\n');
+            const numLines = lines.map((line) => calculateNumLines(line));
+
+            let lineNumbers = [];
+            let i = 1;
+            while (numLines.length > 0) {
+                const numLinesOfSentence = numLines.shift();
+                lineNumbers.push(i);
+                if (numLinesOfSentence > 1) {
+                    Array(numLinesOfSentence - 1)
+                        .fill('')
+                        .forEach((_) => lineNumbers.push(''));
+                }
+                i++;
+            }
+
+            return lineNumbers;
+        };
+
+        const displayLineNumbers = () => {
+            const lineNumbers = calculateLineNumbers();
+            lineNumbersEle.innerHTML = Array.from({
+                length: lineNumbers.length
+            }, (_, i) => `<div>${lineNumbers[i] || '&nbsp;'}</div>`).join('');
+        };
+
+        textarea.addEventListener('input', () => {
+            displayLineNumbers();
+        });
+
+        displayLineNumbers();
+
+        const ro = new ResizeObserver(() => {
+            const rect = textarea.getBoundingClientRect();
+            lineNumbersEle.style.height = `${rect.height}px`;
+            displayLineNumbers();
+        });
+        ro.observe(textarea);
+
+        textarea.addEventListener('scroll', () => {
+            lineNumbersEle.scrollTop = textarea.scrollTop;
+        });
+
+        textarea.addEventListener('keydown', function(e){
+            if (e.key == 'Tab') {
+                e.preventDefault();
+                var start = this.selectionStart;
+                var end = this.selectionEnd;
+
+                // set textarea value to: text before caret + tab + text after caret
+                this.value = this.value.substring(0, start) +
+                "\t" + this.value.substring(end);
+
+                // put caret at right position again
+                this.selectionStart =
+                this.selectionEnd = start + 1;
             }
         });
-
-        // Example: get code from the editor
-        function getCode() {
-            const code = editor.getValue();
-            console.log("Current editor content:", code);
-            return code;
-        }
-
-        // Change the selector if needed
-        var $table = $('##t_content'),
-            $bodyCells = $table.find('tbody tr:nth-child(2)').children(),
-            colWidth;
-
-        // Get the tbody columns width array
-        colWidth = $bodyCells.map(function() {
-            return $(this).width();
-        }).get();
-
-        // Set the width of thead columns
-        $table.find('thead tr').children().each(function(i, v) {
-            $(v).width(colWidth[i]);
-        });
+        // });
 
         $(document).ready(function() {
             $('.inp_rename').keydown(function(event){
@@ -1060,26 +950,43 @@
                 handleSaveFile();
             };
 
+            // const handleNewLine = (event) => {
+            //     console.log('test');
+            //     e = event || window.event;
+            //     if(e.keyCode == 13){
+            //         reLine();
+            //     }
+            // }
+
             button.addEventListener("click", handleClick);
+            // code_editor.addEventListener("keydown", handleNewLine);
         });
 
-        $('##frmExplorer').submit(function(e){
-            e.preventDefault();
-            const dirPath = $("##dirPath").val();
-            if(dirPath === "" || dirPath === "/" || dirPath === "\\") {
-                alert("Nope!!");
-            } else {
-                this.submit();
+        function loadListing(dirPath, viewMode, backUrl) {
+            $("##explorer-listing").load("?sfid=sys.sec.cron.client.samator.explorer.explorer_listing", {
+                dirPath: dirPath,
+                viewMode: viewMode,
+                backUrl: backUrl
+            })
+        }
+
+        function reloadListing() {
+            loadListing('#dirPath#', '#viewMode#', '#backUrl#');
+        }
+
+        function handleNewLine(event){
+            e = event || window.event;
+            console.log(e);
+            if(e.keyCode == 13){
+                reLine();
+            } else if (e.keyCode == 8){
+                reLine();
             }
-        })
+        }
 
         function changeDirectory(dirpath){
-            if(dirPath === "" || dirPath === "/" || dirPath === "\\") {
-                alert("Nope!!");
-            } else {
-                document.getElementById('dirPath').value = dirpath;
-                document.getElementById('frmExplorer').submit();
-            }
+            document.getElementById('dirPath').value = dirpath;
+            document.getElementById('frmExplorer').submit();
         }
 
         function createFile(file_path){
@@ -1118,7 +1025,8 @@
                     }
                     if(data.success && data.dump == '') {
                         window.location.href = '##';
-                        window.location.reload();
+                        // window.location.reload();
+                        reloadListing();
                     }
                 },
                 error: function(xhr, status, error) {
@@ -1163,7 +1071,8 @@
                     console.log(data);
                     alert(data.message+'\n'+data.error);
                     if(data.success && data.dump == '') {
-                        window.location.reload();
+                        // window.location.reload();
+                        reloadListing()
                     }
                 },
                 error: function(xhr, status, error) {
@@ -1201,7 +1110,8 @@
                     alert(data.message+'\n'+data.error);
                     if(data.success && data.dump == '') {
                         window.location.href = '##';
-                        window.location.reload();
+                        // window.location.reload();
+                        reloadListing();
                     }
                 },
                 error: function(xhr, status, error) {
@@ -1256,7 +1166,8 @@
                         console.log(data);
                         alert(data.message+'\n'+data.error);
                         if(data.success && data.dump == '') {
-                            window.location.reload();
+                            // window.location.reload();
+                            reloadListing();
                         }
                     },
                     error: function(xhr, status, error) {
@@ -1288,7 +1199,8 @@
                     console.log(data);
                     alert(data.message+'\n'+data.error);
                     if(data.success && data.dump == '') {
-                        window.location.reload();
+                        // window.location.reload();
+                        reloadListing();
                     }
                 },
                 error: function(xhr, status, error) {
@@ -1305,7 +1217,6 @@
 
         function downloadFile(file_name, file_path){
             window.open('?sfid=sys.sec.cron.client.samator.explorer.downloadFile&file_name='+file_name+'&file_path='+file_path, 'SFExplorer', "width=600,height=400");
-            window.location.reload();
         }
 
         function openFile(file_name, file_path, mode = 'open') {
@@ -1320,12 +1231,6 @@
                 processData: false, 
                 contentType: false,
                 success: function(data){
-                    console.log(data);
-                    //alert(data.message+'\n'+data.error);
-                    // if(data.success && data.dump == '') {
-                        //     window.location.reload();
-                        // }
-                        
                     if(data.success){
                         if(mode == 'create'){
                             window.location.href = '##';
@@ -1336,8 +1241,7 @@
                         $("##inp-file-name").val(file_name);
                         $("##inp-file-dir").val(file_path);
                         $(".container__textarea").val(data.content);
-                        //displayLineNumbers();
-                        editor.setValue(data.content);
+                        displayLineNumbers();
                     } else {
                         if(data.message !== ''){
                             alert(data.message);
@@ -1360,20 +1264,31 @@
 
         function closeEditor(){
             $('##editor-container').hide();
-            window.location.reload();
+            // window.location.reload();
+            reloadListing();
+        }
+
+        function handleChange(e){
+            e = e || window.event;
+            if(e.keyCode == 13){
+                reLine();
+            }
         }
 
         function handleSaveFile(){
             const file_name = $('##inp-file-name').val();
             const file_dir = $('##inp-file-dir').val();
-            var content = getCode();
+            var content = $('.container__textarea').val();
 
             content = content.replace(/<script/gi, "~&lt;script~");
             content = content.replace(/<object/gi, "~&lt;object~");
             content = content.replace(/<embed/gi, "~&lt;embed~");
             content = content.replace(/<applet/gi, "~&lt;applet~");
             content = content.replace(/<meta/gi, "~&lt;meta~");
-            content = content.replace(/<iframe/gi, "~&lt;iframe~");
+
+            console.log(file_name);
+            console.log(file_dir);
+            console.log(content);
 
             var form_data = new FormData();
             form_data.append('file_name', file_name);
@@ -1391,12 +1306,8 @@
                     if(data.message !== ''){
                         alert(data.message+'\n'+data.error);
                     }
-                    // if(data.success && data.dump == '') {
-                    //     window.location.reload();
-                    // }
                     $(".container__textarea").val(data.content);
-                    //displayLineNumbers();
-                    editor.setValue(data.content)
+                    displayLineNumbers();
                 },
                 error: function(xhr, status, error) {
                     var err = eval("(" + xhr.responseText + ")");
@@ -1408,6 +1319,22 @@
                 },
                 dataType: "json"
             });
+        }
+
+        function reLine(){
+            console.log('reline');
+            var pre = document.getElementsByTagName('pre'),
+                pl = pre.length;
+            $('.line-number').remove();
+            $('.cl').remove();
+            for (var i = 0; i < pl; i++) { 
+                pre[i].innerHTML = '<span class="line-number"></span>' + pre[i].innerHTML + '<span class="cl"></span>';
+                var num = pre[i].innerHTML.split(/\n/).length;
+                for (var j = 0; j < num; j++) {
+                    var line_num = pre[i].getElementsByTagName('span')[0];
+                    line_num.innerHTML += '<span>' + (j + 1) + '</span>';
+                }
+            }
         }
 
         var contextMenu = document.getElementById("explorer-context-menu");
@@ -1634,26 +1561,6 @@
 
                 $('##frmExplorer').submit();
             }
-        }
-
-        function changeSorting(col) {
-            const curSort = $("##sort").val();
-            const arrSort = curSort.split(" ");
-            const defSort = "name ASC";
-            var sorting = defSort;
-
-            if(arrSort[0].toLowerCase() === col.toLowerCase()) {
-                if(arrSort[1] === "ASC") {
-                    sorting = col + " DESC";
-                } else if (arrSort[1] === "DESC") {
-                    sorting = col + " ASC";
-                }
-            } else {
-                sorting = col + " ASC";
-            }
-
-            $("##sort").val(sorting);
-            $('##frmExplorer').submit();
         }
     </script>
 </cfoutput>

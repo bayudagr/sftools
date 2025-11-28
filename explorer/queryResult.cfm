@@ -7,18 +7,15 @@
 	<cf_sfabort>
 </cfif>
 
-<cfset objComp = createComponent("component","SFCL_Explorer")>
-<cfset strckVar = objComp.initVar()>
-
 <cfparam name="sqlText" default="">
 
 <cfoutput>
 	<style>
 		##query-table {
 			font-family: monospace;
-			border: 1px solid ##ddd !important;
-			border-collapse: collapse;
-			margin-top: 10px;
+			border-spacing: 0;
+			border-collapse: separate;
+			border: 1px solid ##ddd;
 		}
 		##query-table tbody tr:hover {
 			background-color: ##D6EEEE;
@@ -28,6 +25,7 @@
 		}
 		##query-table thead td {
 			padding: 8px;
+			background: ##fff;
 		}
 		##query-table tbody td {
 			padding: 0 8px;
@@ -39,44 +37,61 @@
 		.txt_data {
 			outline: none;
 		}
+		##query-table thead td {
+			position: sticky;
+			top: 0;
+			z-index: 1;
+		}
+		##query-table td {
+			border: 1px solid ##ddd;
+		}
+		.table-wrapper {
+			height: 100%;
+		}
 	</style>
 	
 	<cftransaction>
 		<cftry>
 			<input name="hdn_sqlText" id="hdn_sqlText" style="display:none" value="#sqlText#">
-			<cfquery name="qData" datasource="#REQUEST.SDSN#">
-				#preserveSingleQuotes(sqlText)#
+			<cfset decodedSql = toString( toBinary(sqlText), "utf-8" )>
+			<cfquery name="qData" datasource="#REQUEST.dsn.payroll#" result="retSql">
+				#preserveSingleQuotes(decodedSql)#
 			</cfquery>
 			
 			<cfif isDefined("qData")>
 				<small style="font-style:italic;">record(s) found: #qData.recordcount#</small>
-				<table border="1" id="query-table">
-					<thead>
-						<tr>
-							<cfloop list="#qData.columnlist#" item="colName">
-								<td style="font-weight:bold">#colName#</td>
-							</cfloop>
-						</tr>
-					</thead>
-					<tbody>
-						<cfloop query="qData">
+ 				<div style="height: calc(92% - 10px);margin-top: 10px;overflow: auto;">
+				<div class="table-wrapper">
+					<table border="1" id="query-table">
+						<thead>
 							<tr>
 								<cfloop list="#qData.columnlist#" item="colName">
-									<td>
-										<cfif len(htmlEditFormat(qData[colname])) gt 250>
-											<textarea class="txt_data" readonly>#htmlEditFormat(qData[colName])#</textarea>
-											<span class="span_data" style="display:none">#htmlEditFormat(qData[colName])#</span>
-										<cfelse>
-											#isDate(qData[colName]) ? dateTimeFormat(qData[colName], "yyyy-mm-dd HH:nn:ss") : htmlEditFormat(qData[colName])#
-										</cfif>
-									</td>
+									<td style="font-weight:bold">#colName#</td>
 								</cfloop>
 							</tr>
-						</cfloop>
-					</tbody>
-				</table>
+						</thead>
+						<tbody>
+							<cfloop query="qData">
+								<tr>
+									<cfloop list="#qData.columnlist#" item="colName">
+										<td>
+											<cfif len(htmlEditFormat(qData[colname])) gt 250>
+												<textarea class="txt_data" readonly>#htmlEditFormat(qData[colName])#</textarea>
+												<span class="span_data" style="display:none">#htmlEditFormat(qData[colName])#</span>
+											<cfelse>
+												#isDate(qData[colName]) ? dateTimeFormat(qData[colName], "yyyy-mm-dd HH:nn:ss") : htmlEditFormat(qData[colName])#
+											</cfif>
+										</td>
+									</cfloop>
+								</tr>
+							</cfloop>
+						</tbody>
+					</table>
+				</div>
+ 				</div>
 
 				<script>
+
 					$('##copy-result').removeAttr('disabled');
 
 					function getQueryUpdate(){
@@ -89,7 +104,7 @@
 
 						$.ajax({
  							type:'POST',
- 							url: "?sfid=sys.sec.cron.client.#strckVar.ist#.explorer.action&action=getUpdateQuery",
+ 							url: "?sfid=sys.sec.cron.client.samator.explorer.action&action=getUpdateQuery",
  							data: form_data,
  							processData: false, 
  							contentType: false,
@@ -115,7 +130,8 @@
 					}
 				</script>
 			<cfelse>
-				<span class="error-text">Query executed</span>
+				<span class="error-text">Query executed</span><br>
+				<small class="error-text">Affected rows: #retSql.recordcount#</small>
 				<script>
 					$('##copy-result').attr('disabled',true);
 				</script>
@@ -158,6 +174,7 @@
 		$('##sql-result').css("display","block");
 	</script>
 </cfoutput>
+
 
 
 
